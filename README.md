@@ -74,3 +74,26 @@ Flags:
     ```
     Error: syntax error at or near "fron"
     ```
+
+## Build cross-platform binaries from source
+
+Each release comes with pre-compiled binaries for several platforms:
+
+https://github.com/lopezator/sqlfmt/releases
+
+Anyway, if you want to cross-compile from source, you can do it using docker in a handy way:
+
+1. Build container:
+    ```
+    $> docker run --rm -t -d --name="sqlfmt-builder" -v="$PWD:/go/src/github.com/lopezator/sqlfmt" --workdir="/go/src/github.com/lopezator/sqlfmt" --entrypoint="cat" cockroachdb/builder:20180813-101406
+    ```
+
+2. Build binaries inside the container:
+    ```
+    $> docker exec -it sqlfmt-builder make build
+    ```
+
+3. Stop container:
+    ```
+    $> docker container stop sqlfmt-builder
+    ```
