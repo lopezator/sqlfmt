@@ -1,0 +1,20 @@
+[[constraint]]
+  name = "github.com/cockroachdb/cockroach"
+  branch = "master"
+  source = "github.com/cockroachdb/cockroach-gen"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+
+[[override]]
+  name = "github.com/apache/thrift"
+  revision = "2566ecd5d9999f7ff70e6ac702243f0dfb24e7aa"
+
+[prune]
+  go-tests = true
+  unused-packages = true
