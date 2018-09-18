@@ -73,7 +73,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4eab0c1e896010aa3e0cda597cda59bc71ba71e60e608f0decd2f07e64501e3f"
+  digest = "1:8b54648513c6ea91cb52a09a32fdea65eebc9c8c444075066db532d55834faad"
   name = "github.com/cockroachdb/cockroach"
   packages = [
     "pkg/base",
@@ -129,7 +129,7 @@
     "pkg/util/uuid",
   ]
   pruneopts = "UT"
-  revision = "d248cd6045a167f088d1db3eed065336088a87bd"
+  revision = "c3affa8ccd683aa7ffc456b7eda07f7527492970"
   source = "github.com/cockroachdb/cockroach-gen"
 
 [[projects]]
@@ -609,25 +609,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/aws/aws-sdk-go/aws/awserr",
-    "github.com/aws/aws-sdk-go/aws/credentials",
-    "github.com/aws/aws-sdk-go/aws/endpoints",
-    "github.com/aws/aws-sdk-go/internal/sdkio",
-    "github.com/aws/aws-sdk-go/internal/shareddefaults",
-    "github.com/cockroachdb/cockroach/pkg/sql/lex",
     "github.com/cockroachdb/cockroach/pkg/sql/parser",
     "github.com/cockroachdb/cockroach/pkg/sql/sem/tree",
-    "github.com/go-ini/ini",
-    "github.com/gogo/protobuf/proto",
-    "github.com/gogo/protobuf/sortkeys",
-    "github.com/gogo/protobuf/types",
-    "github.com/inconshreveable/mousetrap",
-    "github.com/kr/text",
-    "github.com/lib/pq",
-    "github.com/lib/pq/oid",
     "github.com/pkg/errors",
     "github.com/spf13/cobra",
-    "github.com/spf13/pflag",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
