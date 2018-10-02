@@ -75,6 +75,45 @@ Flags:
     Error: syntax error at or near "fron"
     ```
 
+## Sqlfmt (bash kung-fu) usage examples for dev & CI
+
+The Makefile shipped with the project includes two targets useful for dev & CI time.
+
+Dependencies or this targets are [bash](https://www.gnu.org/software/bash/) & [moreutils](https://joeyh.name/code/moreutils/) for your platform of preference, instalable via apt, brew, apk, yum or whatever.
+
+1. [Target](Makefile#72) to format all `*.sql` files on local project (excluding vendor folder):
+
+    ```
+    $> make sql-fmt
+    ```
+
+    Will fail, because of error on `examples/sql_incorrect.sql`
+
+    ```
+    syntax error at or near "crete" sql-check failed, run "make sql-fmt" and try again
+    make: *** [sql-check] Error 1
+    ```
+
+    Correcting the typo on `examples/sql_incorrect.sql` and running `make sql-fmt` again will format `examples/*.sql` contents.
+
+    This target will check syntax and **will overwrite** all `*.sql` files (excluding vendor folder) applying format, so is **ideal for dev usage** before committing.
+
+2. [Target](Makefile#78) to check if all `*.sql` files on local project have the correct syntax and format (excluding vendor folder):
+
+    ```
+    $> make sql-check
+    ```
+
+    This target will check syntax and format correctness but **will not change anything**, so is **ideal for a CI check**.
+    Introducing any format changes (add or remove line breaks or spaces, for example) into any of the well formatted (after point 1) `examples/*.sql` will result into a format error:
+
+    ```
+    sql-check failed, run "make sql-fmt" and try again
+    make: *** [sql-check] Error 1
+    ```
+
+    Error is self-descriptive, running `make sql-fmt` again will make `make sql-check` pass.
+
 ## Build cross-platform binaries from source
 
 Each release comes with pre-compiled binaries for several platforms:
@@ -84,16 +123,19 @@ https://github.com/lopezator/sqlfmt/releases
 Anyway, if you want to cross-compile from source, you can do it using docker in a handy way:
 
 1. Build container:
+
     ```
     $> docker run --rm -t -d --name="sqlfmt-builder" -v="$PWD:/go/src/github.com/lopezator/sqlfmt" --workdir="/go/src/github.com/lopezator/sqlfmt" --entrypoint="cat" cockroachdb/builder:20180813-101406
     ```
 
 2. Build binaries inside the container:
+
     ```
     $> docker exec -it sqlfmt-builder make build
     ```
 
 3. Stop container:
+
     ```
     $> docker container stop sqlfmt-builder
     ```
