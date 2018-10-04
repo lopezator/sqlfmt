@@ -8,6 +8,8 @@ PostgreSQL and maybe other SQL should work good also.
 
 sqlfmt uses internal codebase of [cockroachdb 2.1 release](https://github.com/cockroachdb/cockroach/tree/release-2.1) but decouples from the root project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb project.
 
+Like cockroachdb 2.1 release, **sqlfmt requires go 1.10 or newer to work**.
+
 Just execute the following command and you are good to go:
 
 ```sh
