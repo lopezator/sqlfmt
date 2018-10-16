@@ -49,6 +49,11 @@ func unimplementedWithIssue(sqllex sqlLexer, issue int) int {
     sqllex.(*Scanner).UnimplementedWithIssue(issue)
     return 1
 }
+
+func unimplementedWithIssueDetail(sqllex sqlLexer, issue int, detail string) int {
+    sqllex.(*Scanner).UnimplementedWithIssueDetail(issue, detail)
+    return 1
+}
 %}
 
 %{
@@ -463,18 +468,18 @@ func newNameFromStr(s string) *tree.Name {
 // below; search this file for "Keyword category lists".
 
 // Ordinary key words in alphabetical order.
-%token <str> ABORT ACTION ADD ADMIN
+%token <str> ABORT ACTION ADD ADMIN AGGREGATE
 %token <str> ALL ALTER ANALYSE ANALYZE AND ANY ANNOTATE_TYPE ARRAY AS ASC
 %token <str> ASYMMETRIC AT
 
 %token <str> BACKUP BEGIN BETWEEN BIGINT BIGSERIAL BIT
-%token <str> BLOB BOOL BOOLEAN BOTH BTREE BY BYTEA BYTES
+%token <str> BLOB BOOL BOOLEAN BOTH BY BYTEA BYTES
 
 %token <str> CACHE CANCEL CASCADE CASE CAST CHANGEFEED CHAR
 %token <str> CHARACTER CHARACTERISTICS CHECK
 %token <str> CLUSTER COALESCE COLLATE COLLATION COLUMN COLUMNS COMMENT COMMIT
 %token <str> COMMITTED COMPACT CONCAT CONFIGURATION CONFIGURATIONS CONFIGURE
-%token <str> CONFLICT CONSTRAINT CONSTRAINTS CONTAINS COPY COVERING CREATE
+%token <str> CONFLICT CONSTRAINT CONSTRAINTS CONTAINS CONVERSION COPY COVERING CREATE
 %token <str> CROSS CUBE CURRENT CURRENT_CATALOG CURRENT_DATE CURRENT_SCHEMA
 %token <str> CURRENT_ROLE CURRENT_TIME CURRENT_TIMESTAMP
 %token <str> CURRENT_USER CYCLE
@@ -487,13 +492,13 @@ func newNameFromStr(s string) *tree.Name {
 %token <str> EXISTS EXECUTE EXPERIMENTAL
 %token <str> EXPERIMENTAL_FINGERPRINTS EXPERIMENTAL_REPLICA
 %token <str> EXPERIMENTAL_AUDIT
-%token <str> EXPLAIN EXPORT EXTRACT EXTRACT_DURATION
+%token <str> EXPLAIN EXPORT EXTENSION EXTRACT EXTRACT_DURATION
 
 %token <str> FALSE FAMILY FETCH FETCHVAL FETCHTEXT FETCHVAL_PATH FETCHTEXT_PATH
 %token <str> FILES FILTER
-%token <str> FIRST FLOAT FLOAT4 FLOAT8 FLOORDIV FOLLOWING FOR FORCE_INDEX FOREIGN FROM FULL
+%token <str> FIRST FLOAT FLOAT4 FLOAT8 FLOORDIV FOLLOWING FOR FORCE_INDEX FOREIGN FROM FULL FUNCTION
 
-%token <str> GIN GRANT GRANTS GREATEST GROUP GROUPING GROUPS
+%token <str> GLOBAL GRANT GRANTS GREATEST GROUP GROUPING GROUPS
 
 %token <str> HAVING HIGH HISTOGRAM HOUR
 
@@ -507,43 +512,44 @@ func newNameFromStr(s string) *tree.Name {
 
 %token <str> KEY KEYS KV
 
-%token <str> LATERAL LC_CTYPE LC_COLLATE
+%token <str> LANGUAGE LATERAL LC_CTYPE LC_COLLATE
 %token <str> LEADING LEASE LEAST LEFT LESS LEVEL LIKE LIMIT LIST LOCAL
 %token <str> LOCALTIME LOCALTIMESTAMP LOW LSHIFT
 
-%token <str> MATCH MINVALUE MAXVALUE MINUTE MONTH
+%token <str> MATCH MATERIALIZED MINVALUE MAXVALUE MINUTE MONTH
 
 %token <str> NAN NAME NAMES NATURAL NEXT NO NO_INDEX_JOIN NORMAL
 %token <str> NOT NOTHING NOTNULL NULL NULLIF NUMERIC
 
 %token <str> OF OFF OFFSET OID OIDVECTOR ON ONLY OPTION OPTIONS OR
-%token <str> ORDER ORDINALITY OUT OUTER OVER OVERLAPS OVERLAY OWNED
+%token <str> ORDER ORDINALITY OUT OUTER OVER OVERLAPS OVERLAY OWNED OPERATOR
 
 %token <str> PARENT PARTIAL PARTITION PASSWORD PAUSE PHYSICAL PLACING
 %token <str> PLANS POSITION PRECEDING PRECISION PREPARE PRIMARY PRIORITY
+%token <str> PROCEDURAL PUBLICATION
 
 %token <str> QUERIES QUERY
 
 %token <str> RANGE RANGES READ REAL RECURSIVE REF REFERENCES
 %token <str> REGCLASS REGPROC REGPROCEDURE REGNAMESPACE REGTYPE
-%token <str> REMOVE_PATH RENAME REPEATABLE
+%token <str> REMOVE_PATH RENAME REPEATABLE REPLACE
 %token <str> RELEASE RESET RESTORE RESTRICT RESUME RETURNING REVOKE RIGHT
-%token <str> ROLE ROLES ROLLBACK ROLLUP ROW ROWS RSHIFT
+%token <str> ROLE ROLES ROLLBACK ROLLUP ROW ROWS RSHIFT RULE
 
 %token <str> SAVEPOINT SCATTER SCHEMA SCHEMAS SCRUB SEARCH SECOND SELECT SEQUENCE SEQUENCES
 %token <str> SERIAL SERIAL2 SERIAL4 SERIAL8
-%token <str> SERIALIZABLE SESSION SESSIONS SESSION_USER SET SETTING SETTINGS
+%token <str> SERIALIZABLE SERVER SESSION SESSIONS SESSION_USER SET SETTING SETTINGS
 %token <str> SHOW SIMILAR SIMPLE SMALLINT SMALLSERIAL SNAPSHOT SOME SPLIT SQL
 
 %token <str> START STATISTICS STATUS STDIN STRICT STRING STORE STORED STORING SUBSTRING
-%token <str> SYMMETRIC SYNTAX SYSTEM
+%token <str> SYMMETRIC SYNTAX SYSTEM SUBSCRIPTION
 
 %token <str> TABLE TABLES TEMP TEMPLATE TEMPORARY TESTING_RANGES EXPERIMENTAL_RANGES TESTING_RELOCATE EXPERIMENTAL_RELOCATE TEXT THEN
-%token <str> TIME TIMETZ TIMESTAMP TIMESTAMPTZ TO TRAILING TRACE TRANSACTION TREAT TRIM TRUE
-%token <str> TRUNCATE TYPE
+%token <str> TIME TIMETZ TIMESTAMP TIMESTAMPTZ TO TRAILING TRACE TRANSACTION TREAT TRIGGER TRIM TRUE
+%token <str> TRUNCATE TRUSTED TYPE
 %token <str> TRACING
 
-%token <str> UNBOUNDED UNCOMMITTED UNION UNIQUE UNKNOWN
+%token <str> UNBOUNDED UNCOMMITTED UNION UNIQUE UNKNOWN UNLOGGED
 %token <str> UPDATE UPSERT USE USER USERS USING UUID
 
 %token <str> VALID VALIDATE VALUE VALUES VARBIT VARCHAR VARIADIC VIEW VARYING VIRTUAL
@@ -669,7 +675,6 @@ func newNameFromStr(s string) *tree.Name {
 %type <tree.Statement> explain_stmt
 %type <tree.Statement> prepare_stmt
 %type <tree.Statement> preparable_stmt
-%type <tree.Statement> explainable_stmt
 %type <tree.Statement> export_stmt
 %type <tree.Statement> execute_stmt
 %type <tree.Statement> deallocate_stmt
@@ -687,7 +692,7 @@ func newNameFromStr(s string) *tree.Name {
 %type <tree.Statement> rollback_stmt
 %type <tree.Statement> savepoint_stmt
 
-%type <tree.Statement> set_stmt
+%type <tree.Statement> preparable_set_stmt nonpreparable_set_stmt
 %type <tree.Statement> set_session_stmt
 %type <tree.Statement> set_csetting_stmt
 %type <tree.Statement> set_transaction_stmt
@@ -766,7 +771,6 @@ func newNameFromStr(s string) *tree.Name {
 %type <tree.Operator> subquery_op
 %type <*tree.UnresolvedName> func_name
 %type <str> opt_collate
-%type <empty> opt_collate_unimpl
 
 %type <str> database_name index_name opt_index_name column_name insert_column_item statistics_name window_name
 %type <str> family_name opt_family_name table_alias_name constraint_name target_name zone_name partition_name collation_name
@@ -830,7 +834,7 @@ func newNameFromStr(s string) *tree.Name {
 %type <tree.Exprs> substr_list
 %type <tree.Exprs> trim_list
 %type <tree.Exprs> execute_param_clause
-%type <tree.DurationField> opt_interval interval_second
+%type <tree.DurationField> opt_interval interval_second interval_qualifier
 %type <tree.Expr> overlay_placing
 
 %type <bool> opt_unique
@@ -881,7 +885,7 @@ func newNameFromStr(s string) *tree.Name {
 %type <tree.Expr> rowsfrom_item
 %type <tree.TableExpr> joined_table
 %type <*tree.UnresolvedName> relation_expr
-%type <tree.TableExpr> relation_expr_opt_alias
+%type <tree.TableExpr> table_name_expr_opt_alias_idx table_name_expr_with_index
 %type <tree.SelectExpr> target_elem
 %type <*tree.UpdateExpr> single_set_clause
 %type <tree.AsOfClause> as_of_clause opt_as_of_clause
@@ -961,7 +965,7 @@ func newNameFromStr(s string) *tree.Name {
 
 // Precedence: lowest to highest
 %nonassoc  VALUES              // see value_clause
-%nonassoc  SET                 // see relation_expr_opt_alias
+%nonassoc  SET                 // see table_name_expr_opt_alias_idx
 %left      UNION EXCEPT
 %left      INTERSECT
 %left      OR
@@ -1052,41 +1056,20 @@ stmt_list:
 
 stmt:
   HELPTOKEN { return helpWith(sqllex, "") }
-| alter_stmt      // help texts in sub-rule
-| backup_stmt     // EXTEND WITH HELP: BACKUP
-| cancel_stmt     // help texts in sub-rule
+| preparable_stmt  // help texts in sub-rule
 | copy_from_stmt
 | comment_stmt
-| create_stmt     // help texts in sub-rule
-| deallocate_stmt // EXTEND WITH HELP: DEALLOCATE
-| delete_stmt     // EXTEND WITH HELP: DELETE
-| discard_stmt    // EXTEND WITH HELP: DISCARD
-| drop_stmt       // help texts in sub-rule
-| execute_stmt    // EXTEND WITH HELP: EXECUTE
-| explain_stmt    // EXTEND WITH HELP: EXPLAIN
-| export_stmt     // EXTEND WITH HELP: EXPORT
-| grant_stmt      // EXTEND WITH HELP: GRANT
-| insert_stmt     // EXTEND WITH HELP: INSERT
-| import_stmt     // EXTEND WITH HELP: IMPORT
-| pause_stmt      // EXTEND WITH HELP: PAUSE JOBS
-| prepare_stmt    // EXTEND WITH HELP: PREPARE
-| restore_stmt    // EXTEND WITH HELP: RESTORE
-| resume_stmt     // EXTEND WITH HELP: RESUME JOBS
-| revoke_stmt     // EXTEND WITH HELP: REVOKE
-| savepoint_stmt  // EXTEND WITH HELP: SAVEPOINT
-| scrub_stmt      // help texts in sub-rule
-| select_stmt     // help texts in sub-rule
-  {
-    $$.val = $1.slct()
-  }
+| execute_stmt      // EXTEND WITH HELP: EXECUTE
+| deallocate_stmt   // EXTEND WITH HELP: DEALLOCATE
+| discard_stmt      // EXTEND WITH HELP: DISCARD
+| export_stmt       // EXTEND WITH HELP: EXPORT
+| grant_stmt        // EXTEND WITH HELP: GRANT
+| prepare_stmt      // EXTEND WITH HELP: PREPARE
+| revoke_stmt       // EXTEND WITH HELP: REVOKE
+| savepoint_stmt    // EXTEND WITH HELP: SAVEPOINT
 | release_stmt      // EXTEND WITH HELP: RELEASE
-| reset_stmt        // help texts in sub-rule
-| set_stmt          // help texts in sub-rule
-| show_stmt         // help texts in sub-rule
+| nonpreparable_set_stmt // help texts in sub-rule
 | transaction_stmt  // help texts in sub-rule
-| truncate_stmt     // EXTEND WITH HELP: TRUNCATE
-| update_stmt       // EXTEND WITH HELP: UPDATE
-| upsert_stmt       // EXTEND WITH HELP: UPSERT
 | /* EMPTY */
   {
     $$.val = tree.Statement(nil)
@@ -1463,7 +1446,7 @@ alter_table_cmd:
     $$.val = &tree.AlterTableDropStored{Column: tree.Name($3)}
   }
   // ALTER TABLE <name> ALTER [COLUMN] <colname> SET NOT NULL
-| ALTER opt_column column_name SET NOT NULL { return unimplemented(sqllex, "alter set non null") }
+| ALTER opt_column column_name SET NOT NULL { return unimplementedWithIssue(sqllex, 28751) }
   // ALTER TABLE <name> DROP [COLUMN] IF EXISTS <colname> [RESTRICT|CASCADE]
 | DROP opt_column IF EXISTS column_name opt_drop_behavior
   {
@@ -1504,7 +1487,7 @@ alter_table_cmd:
     }
   }
   // ALTER TABLE <name> ALTER CONSTRAINT ...
-| ALTER CONSTRAINT constraint_name { return unimplemented(sqllex, "alter constraint") }
+| ALTER CONSTRAINT constraint_name error { return unimplemented(sqllex, "alter constraint") }
   // ALTER TABLE <name> VALIDATE CONSTRAINT ...
 | VALIDATE CONSTRAINT constraint_name
   {
@@ -1946,12 +1929,14 @@ cancel_sessions_stmt:
 comment_stmt:
   COMMENT ON TABLE table_name IS comment_text
   {
-    /* SKIP DOC */
-    return unimplementedWithIssue(sqllex, 19472)
+    return unimplementedWithIssueDetail(sqllex, 19472, "table")
   }
 | COMMENT ON COLUMN column_path IS comment_text
   {
-    /* SKIP DOC */
+    return unimplementedWithIssueDetail(sqllex, 19472, "column")
+  }
+| COMMENT ON error
+  {
     return unimplementedWithIssue(sqllex, 19472)
   }
 
@@ -1970,7 +1955,63 @@ create_stmt:
 | create_role_stmt     // EXTEND WITH HELP: CREATE ROLE
 | create_ddl_stmt      // help texts in sub-rule
 | create_stats_stmt    // EXTEND WITH HELP: CREATE STATISTICS
+| create_unsupported   {}
 | CREATE error         // SHOW HELP: CREATE
+
+create_unsupported:
+  CREATE AGGREGATE error { return unimplemented(sqllex, "create aggregate") }
+| CREATE CAST error { return unimplemented(sqllex, "create cast") }
+| CREATE CONSTRAINT TRIGGER error { return unimplementedWithIssueDetail(sqllex, 28296, "create constraint") }
+| CREATE CONVERSION error { return unimplemented(sqllex, "create conversion") }
+| CREATE DEFAULT CONVERSION error { return unimplemented(sqllex, "create def conv") }
+| CREATE EXTENSION IF NOT EXISTS name error { return unimplemented(sqllex, "create extension " + $6) }
+| CREATE EXTENSION name error { return unimplemented(sqllex, "create extension " + $3) }
+| CREATE FOREIGN TABLE error { return unimplemented(sqllex, "create foreign table") }
+| CREATE FOREIGN DATA error { return unimplemented(sqllex, "create fdw") }
+| CREATE FUNCTION error { return unimplementedWithIssueDetail(sqllex, 17511, "create function") }
+| CREATE OR REPLACE FUNCTION error { return unimplementedWithIssueDetail(sqllex, 17511, "create function") }
+| CREATE opt_or_replace opt_trusted opt_procedural LANGUAGE name error { return unimplementedWithIssueDetail(sqllex, 17511, "create language " + $6) }
+| CREATE MATERIALIZED VIEW error { return unimplementedWithIssue(sqllex, 24747) }
+| CREATE OPERATOR error { return unimplemented(sqllex, "create operator") }
+| CREATE PUBLICATION error { return unimplemented(sqllex, "create publication") }
+| CREATE opt_or_replace RULE error { return unimplemented(sqllex, "create rule") }
+| CREATE SERVER error { return unimplemented(sqllex, "create server") }
+| CREATE SUBSCRIPTION error { return unimplemented(sqllex, "create subscription") }
+| CREATE TEXT error { return unimplementedWithIssueDetail(sqllex, 7821, "create text") }
+| CREATE TRIGGER error { return unimplementedWithIssueDetail(sqllex, 28296, "create") }
+
+opt_or_replace:
+  OR REPLACE {}
+| /* EMPTY */ {}
+
+opt_trusted:
+  TRUSTED {}
+| /* EMPTY */ {}
+
+opt_procedural:
+  PROCEDURAL {}
+| /* EMPTY */ {}
+
+drop_unsupported:
+  DROP AGGREGATE error { return unimplemented(sqllex, "drop aggregate") }
+| DROP CAST error { return unimplemented(sqllex, "drop cast") }
+| DROP COLLATION error { return unimplemented(sqllex, "drop collation") }
+| DROP CONVERSION error { return unimplemented(sqllex, "drop conversion") }
+| DROP DOMAIN error { return unimplementedWithIssueDetail(sqllex, 27796, "drop") }
+| DROP EXTENSION IF EXISTS name error { return unimplemented(sqllex, "drop extension " + $5) }
+| DROP EXTENSION name error { return unimplemented(sqllex, "drop extension " + $3) }
+| DROP FOREIGN TABLE error { return unimplemented(sqllex, "drop foreign table") }
+| DROP FOREIGN DATA error { return unimplemented(sqllex, "drop fdw") }
+| DROP FUNCTION error { return unimplementedWithIssueDetail(sqllex, 17511, "drop function") }
+| DROP opt_procedural LANGUAGE name error { return unimplementedWithIssueDetail(sqllex, 17511, "drop language " + $4) }
+| DROP OPERATOR error { return unimplemented(sqllex, "drop operator") }
+| DROP PUBLICATION error { return unimplemented(sqllex, "drop publication") }
+| DROP RULE error { return unimplemented(sqllex, "drop rule") }
+| DROP SERVER error { return unimplemented(sqllex, "drop server") }
+| DROP SUBSCRIPTION error { return unimplemented(sqllex, "drop subscription") }
+| DROP TEXT error { return unimplementedWithIssueDetail(sqllex, 7821, "drop text") }
+| DROP TYPE error { return unimplementedWithIssueDetail(sqllex, 27793, "drop type") }
+| DROP TRIGGER error { return unimplementedWithIssueDetail(sqllex, 28296, "drop") }
 
 create_ddl_stmt:
   create_changefeed_stmt
@@ -1979,7 +2020,7 @@ create_ddl_stmt:
 | create_table_stmt    // EXTEND WITH HELP: CREATE TABLE
 | create_table_as_stmt // EXTEND WITH HELP: CREATE TABLE
 // Error case for both CREATE TABLE and CREATE TABLE ... AS in one
-| CREATE TABLE error   // SHOW HELP: CREATE TABLE
+| CREATE opt_temp TABLE error   // SHOW HELP: CREATE TABLE
 | create_type_stmt     { /* SKIP DOC */ }
 | create_view_stmt     // EXTEND WITH HELP: CREATE VIEW
 | create_sequence_stmt // EXTEND WITH HELP: CREATE SEQUENCE
@@ -2052,7 +2093,7 @@ opt_changefeed_sink:
 //               [RETURNING <exprs...>]
 // %SeeAlso: WEBDOCS/delete.html
 delete_stmt:
-  opt_with_clause DELETE FROM relation_expr_opt_alias where_clause opt_sort_clause opt_limit_clause returning_clause
+  opt_with_clause DELETE FROM table_name_expr_opt_alias_idx where_clause opt_sort_clause opt_limit_clause returning_clause
   {
     $$.val = &tree.Delete{
       With: $1.with(),
@@ -2076,7 +2117,7 @@ discard_stmt:
 | DISCARD PLANS { return unimplemented(sqllex, "discard plans") }
 | DISCARD SEQUENCES { return unimplemented(sqllex, "discard sequences") }
 | DISCARD TEMP { return unimplemented(sqllex, "discard temp") }
-| DISCARD TEMPORARY { return unimplemented(sqllex, "discard temporary") }
+| DISCARD TEMPORARY { return unimplemented(sqllex, "discard temp") }
 | DISCARD error // SHOW HELP: DISCARD
 
 // %Help: DROP
@@ -2088,6 +2129,7 @@ drop_stmt:
   drop_ddl_stmt      // help texts in sub-rule
 | drop_role_stmt     // EXTEND WITH HELP: DROP ROLE
 | drop_user_stmt     // EXTEND WITH HELP: DROP USER
+| drop_unsupported   {}
 | DROP error         // SHOW HELP: DROP
 
 drop_ddl_stmt:
@@ -2234,68 +2276,64 @@ table_name_list:
 // EXPLAIN <statement>
 // EXPLAIN ([PLAN ,] <planoptions...> ) <statement>
 // EXPLAIN [ANALYZE] (DISTSQL) <statement>
+// EXPLAIN ANALYZE [(DISTSQL)] <statement>
 //
 // Explainable statements:
 //     SELECT, CREATE, DROP, ALTER, INSERT, UPSERT, UPDATE, DELETE,
-//     SHOW, EXPLAIN, EXECUTE
+//     SHOW, EXPLAIN
 //
 // Plan options:
-//     TYPES, VERBOSE
+//     TYPES, VERBOSE, OPT
 //
 // %SeeAlso: WEBDOCS/explain.html
 explain_stmt:
-  EXPLAIN explainable_stmt
+  EXPLAIN preparable_stmt
   {
     $$.val = &tree.Explain{Statement: $2.stmt()}
   }
 | EXPLAIN error // SHOW HELP: EXPLAIN
-| EXPLAIN '(' explain_option_list ')' explainable_stmt
+| EXPLAIN '(' explain_option_list ')' preparable_stmt
   {
     $$.val = &tree.Explain{Options: $3.strs(), Statement: $5.stmt()}
   }
-| EXPLAIN ANALYZE '(' explain_option_list ')' explainable_stmt
+| EXPLAIN ANALYZE preparable_stmt
+  {
+    $$.val = &tree.Explain{Options: []string{"DISTSQL", $2}, Statement: $3.stmt()}
+  }
+| EXPLAIN ANALYZE '(' explain_option_list ')' preparable_stmt
   {
     $$.val = &tree.Explain{Options: append($4.strs(), $2), Statement: $6.stmt()}
   }
 // This second error rule is necessary, because otherwise
-// explainable_stmt also provides "selectclause := '(' error ..." and
+// preparable_stmt also provides "selectclause := '(' error ..." and
 // cause a help text for the select clause, which will be confusing in
 // the context of EXPLAIN.
 | EXPLAIN '(' error // SHOW HELP: EXPLAIN
 
 preparable_stmt:
-  alter_user_stmt   // EXTEND WITH HELP: ALTER USER
+  alter_stmt        // help texts in sub-rule
 | backup_stmt       // EXTEND WITH HELP: BACKUP
 | cancel_stmt       // help texts in sub-rule
-| create_user_stmt  // EXTEND WITH HELP: CREATE USER
-| create_role_stmt  // EXTEND WITH HELP: CREATE ROLE
+| create_stmt       // help texts in sub-rule
 | delete_stmt       // EXTEND WITH HELP: DELETE
-| drop_role_stmt    // EXTEND WITH HELP: DROP ROLE
-| drop_user_stmt    // EXTEND WITH HELP: DROP USER
+| drop_stmt         // help texts in sub-rule
+| explain_stmt      { /* SKIP DOC */ }
 | import_stmt       // EXTEND WITH HELP: IMPORT
 | insert_stmt       // EXTEND WITH HELP: INSERT
 | pause_stmt        // EXTEND WITH HELP: PAUSE JOBS
 | reset_stmt        // help texts in sub-rule
 | restore_stmt      // EXTEND WITH HELP: RESTORE
 | resume_stmt       // EXTEND WITH HELP: RESUME JOBS
+| scrub_stmt        // help texts in sub-rule
 | select_stmt       // help texts in sub-rule
   {
     $$.val = $1.slct()
   }
-| set_session_stmt  // EXTEND WITH HELP: SET SESSION
-| set_csetting_stmt // EXTEND WITH HELP: SET CLUSTER SETTING
+| preparable_set_stmt // help texts in sub-rule
 | show_stmt         // help texts in sub-rule
+| truncate_stmt     // EXTEND WITH HELP: TRUNCATE
 | update_stmt       // EXTEND WITH HELP: UPDATE
 | upsert_stmt       // EXTEND WITH HELP: UPSERT
-
-explainable_stmt:
-  preparable_stmt
-| alter_ddl_stmt    // help texts in sub-rule
-| create_ddl_stmt   // help texts in sub-rule
-| create_stats_stmt // help texts in sub-rule
-| drop_ddl_stmt     // help texts in sub-rule
-| execute_stmt      // EXTEND WITH HELP: EXECUTE
-| explain_stmt      { /* SKIP DOC */ }
 
 explain_option_list:
   explain_option_name
@@ -2345,8 +2383,6 @@ execute_stmt:
     }
   }
 | EXECUTE error // SHOW HELP: EXECUTE
-//   CREATE TABLE <name> AS EXECUTE <plan_name> [(params, ...)]
-// | CREATE opt_temp TABLE create_as_target AS EXECUTE name execute_param_clause opt_with_data { return unimplemented(sqllex) }
 
 execute_param_clause:
   '(' expr_list ')'
@@ -2522,14 +2558,18 @@ use_stmt:
   }
 | USE error // SHOW HELP: USE
 
-// SET SESSION / SET CLUSTER SETTING / SET TRANSACTION
-set_stmt:
+// SET remainder, e.g. SET TRANSACTION
+nonpreparable_set_stmt:
+  set_transaction_stmt // EXTEND WITH HELP: SET TRANSACTION
+| set_exprs_internal   { /* SKIP DOC */ }
+| SET CONSTRAINTS error { return unimplemented(sqllex, "set constraints") }
+| SET LOCAL error { return unimplemented(sqllex, "set local") }
+
+// SET SESSION / SET CLUSTER SETTING
+preparable_set_stmt:
   set_session_stmt     // EXTEND WITH HELP: SET SESSION
 | set_csetting_stmt    // EXTEND WITH HELP: SET CLUSTER SETTING
-| set_transaction_stmt // EXTEND WITH HELP: SET TRANSACTION
-| set_exprs_internal   { /* SKIP DOC */ }
 | use_stmt             // EXTEND WITH HELP: USE
-| SET LOCAL error { return unimplemented(sqllex, "set local") }
 
 // %Help: SCRUB - run checks against databases or tables
 // %Category: Experimental
@@ -3617,54 +3657,75 @@ pause_stmt:
 // WEBDOCS/create-table.html
 // WEBDOCS/create-table-as.html
 create_table_stmt:
-  CREATE TABLE table_name '(' opt_table_elem_list ')' opt_interleave opt_partition_by
+  CREATE opt_temp TABLE table_name '(' opt_table_elem_list ')' opt_interleave opt_partition_by
   {
     $$.val = &tree.CreateTable{
-      Table: $3.normalizableTableNameFromUnresolvedName(),
+      Table: $4.normalizableTableNameFromUnresolvedName(),
       IfNotExists: false,
-      Interleave: $7.interleave(),
-      Defs: $5.tblDefs(),
+      Interleave: $8.interleave(),
+      Defs: $6.tblDefs(),
       AsSource: nil,
       AsColumnNames: nil,
-      PartitionBy: $8.partitionBy(),
+      PartitionBy: $9.partitionBy(),
     }
   }
-| CREATE TABLE IF NOT EXISTS table_name '(' opt_table_elem_list ')' opt_interleave opt_partition_by
+| CREATE opt_temp TABLE IF NOT EXISTS table_name '(' opt_table_elem_list ')' opt_interleave opt_partition_by
   {
     $$.val = &tree.CreateTable{
-      Table: $6.normalizableTableNameFromUnresolvedName(),
+      Table: $7.normalizableTableNameFromUnresolvedName(),
       IfNotExists: true,
-      Interleave: $10.interleave(),
-      Defs: $8.tblDefs(),
+      Interleave: $11.interleave(),
+      Defs: $9.tblDefs(),
       AsSource: nil,
       AsColumnNames: nil,
-      PartitionBy: $11.partitionBy(),
+      PartitionBy: $12.partitionBy(),
     }
   }
 
 create_table_as_stmt:
-  CREATE TABLE table_name opt_column_list AS select_stmt
+  CREATE opt_temp TABLE table_name opt_column_list AS select_stmt
   {
     $$.val = &tree.CreateTable{
-      Table: $3.normalizableTableNameFromUnresolvedName(),
+      Table: $4.normalizableTableNameFromUnresolvedName(),
       IfNotExists: false,
       Interleave: nil,
       Defs: nil,
-      AsSource: $6.slct(),
-      AsColumnNames: $4.nameList(),
+      AsSource: $7.slct(),
+      AsColumnNames: $5.nameList(),
     }
   }
-| CREATE TABLE IF NOT EXISTS table_name opt_column_list AS select_stmt
+| CREATE opt_temp TABLE IF NOT EXISTS table_name opt_column_list AS select_stmt
   {
     $$.val = &tree.CreateTable{
-      Table: $6.normalizableTableNameFromUnresolvedName(),
+      Table: $7.normalizableTableNameFromUnresolvedName(),
       IfNotExists: true,
       Interleave: nil,
       Defs: nil,
-      AsSource: $9.slct(),
-      AsColumnNames: $7.nameList(),
+      AsSource: $10.slct(),
+      AsColumnNames: $8.nameList(),
     }
   }
+
+/*
+ * Redundancy here is needed to avoid shift/reduce conflicts,
+ * since TEMP is not a reserved word.  See also OptTempTableName.
+ *
+ * NOTE: we accept both GLOBAL and LOCAL options.  They currently do nothing,
+ * but future versions might consider GLOBAL to request SQL-spec-compliant
+ * temp table behavior, so warn about that.  Since we have no modules the
+ * LOCAL keyword is really meaningless; furthermore, some other products
+ * implement LOCAL as meaning the same as our default temp table behavior,
+ * so we'll probably continue to treat LOCAL as a noise word.
+ */
+opt_temp:
+  TEMPORARY                 { return unimplementedWithIssue(sqllex, 5807) }
+| TEMP						{ return unimplementedWithIssue(sqllex, 5807) }
+| LOCAL TEMPORARY			{ return unimplementedWithIssue(sqllex, 5807) }
+| LOCAL TEMP				{ return unimplementedWithIssue(sqllex, 5807) }
+| GLOBAL TEMPORARY          { return unimplementedWithIssue(sqllex, 5807) }
+| GLOBAL TEMP               { return unimplementedWithIssue(sqllex, 5807) }
+| UNLOGGED					{ return unimplemented(sqllex, "create unlogged") }
+| /*EMPTY*/					{ /* no error */ }
 
 opt_table_elem_list:
   table_elem_list
@@ -4044,9 +4105,9 @@ opt_column_list:
   }
 
 key_match:
-  MATCH FULL { return unimplemented(sqllex, "match full") }
-| MATCH PARTIAL { return unimplemented(sqllex, "match partial") }
-| MATCH SIMPLE { return unimplemented(sqllex, "match simple") }
+  MATCH FULL { return unimplemented(sqllex, "references match full") }
+| MATCH PARTIAL { return unimplemented(sqllex, "references match partial") }
+| MATCH SIMPLE { return unimplemented(sqllex, "references match simple") }
 | /* EMPTY */ {}
 
 // We combine the update and delete actions into one value temporarily for
@@ -4140,24 +4201,24 @@ numeric_only:
 //
 // %SeeAlso: CREATE TABLE
 create_sequence_stmt:
-  CREATE SEQUENCE sequence_name opt_sequence_option_list
+  CREATE opt_temp SEQUENCE sequence_name opt_sequence_option_list
   {
     node := &tree.CreateSequence{
-      Name: $3.normalizableTableNameFromUnresolvedName(),
-      Options: $4.seqOpts(),
+      Name: $4.normalizableTableNameFromUnresolvedName(),
+      Options: $5.seqOpts(),
     }
     $$.val = node
   }
-| CREATE SEQUENCE IF NOT EXISTS sequence_name opt_sequence_option_list
+| CREATE opt_temp SEQUENCE IF NOT EXISTS sequence_name opt_sequence_option_list
   {
     node := &tree.CreateSequence{
-      Name: $6.normalizableTableNameFromUnresolvedName(),
-      Options: $7.seqOpts(),
+      Name: $7.normalizableTableNameFromUnresolvedName(),
+      Options: $8.seqOpts(),
       IfNotExists: true,
     }
     $$.val = node
   }
-| CREATE SEQUENCE error // SHOW HELP: CREATE SEQUENCE
+| CREATE opt_temp SEQUENCE error // SHOW HELP: CREATE SEQUENCE
 
 opt_sequence_option_list:
   sequence_option_list
@@ -4168,11 +4229,11 @@ sequence_option_list:
 | sequence_option_list sequence_option_elem  { $$.val = append($1.seqOpts(), $2.seqOpt()) }
 
 sequence_option_elem:
-  AS typename                  { return unimplemented(sqllex, "create sequence AS option") }
+  AS typename                  { return unimplementedWithIssueDetail(sqllex, 25110, $2.colType().String()) }
 | CYCLE                        { /* SKIP DOC */
                                  $$.val = tree.SequenceOption{Name: tree.SeqOptCycle} }
 | NO CYCLE                     { $$.val = tree.SequenceOption{Name: tree.SeqOptNoCycle} }
-| OWNED BY column_path         { return unimplemented(sqllex, "create sequence OWNED BY option") }
+| OWNED BY column_path         { return unimplementedWithIssue(sqllex, 26382) }
 | CACHE signed_iconst64        { /* SKIP DOC */
                                  x := $2.int64()
                                  $$.val = tree.SequenceOption{Name: tree.SeqOptCache, IntVal: &x} }
@@ -4233,32 +4294,41 @@ opt_password:
 // %Text: CREATE ROLE [IF NOT EXISTS] <name>
 // %SeeAlso: DROP ROLE, SHOW ROLES
 create_role_stmt:
-  CREATE ROLE string_or_placeholder
+  CREATE role_or_group string_or_placeholder
   {
     $$.val = &tree.CreateRole{Name: $3.expr()}
   }
-| CREATE ROLE IF NOT EXISTS string_or_placeholder
+| CREATE role_or_group IF NOT EXISTS string_or_placeholder
   {
     $$.val = &tree.CreateRole{Name: $6.expr(), IfNotExists: true}
   }
-| CREATE ROLE error // SHOW HELP: CREATE ROLE
+| CREATE role_or_group error // SHOW HELP: CREATE ROLE
+
+// "CREATE GROUP is now an alias for CREATE ROLE"
+// https://www.postgresql.org/docs/10/static/sql-creategroup.html
+role_or_group:
+  ROLE  { }
+| GROUP { /* SKIP DOC */ }
 
 // %Help: CREATE VIEW - create a new view
 // %Category: DDL
 // %Text: CREATE VIEW <viewname> [( <colnames...> )] AS <source>
 // %SeeAlso: CREATE TABLE, SHOW CREATE, WEBDOCS/create-view.html
 create_view_stmt:
-  CREATE VIEW view_name opt_column_list AS select_stmt
+  CREATE opt_temp opt_view_recursive VIEW view_name opt_column_list AS select_stmt
   {
     $$.val = &tree.CreateView{
-      Name: $3.normalizableTableNameFromUnresolvedName(),
-      ColumnNames: $4.nameList(),
-      AsSource: $6.slct(),
+      Name: $5.normalizableTableNameFromUnresolvedName(),
+      ColumnNames: $6.nameList(),
+      AsSource: $8.slct(),
     }
   }
-| CREATE VIEW error // SHOW HELP: CREATE VIEW
+| CREATE OR REPLACE opt_temp opt_view_recursive VIEW error { return unimplementedWithIssue(sqllex, 24897) }
+| CREATE opt_temp opt_view_recursive VIEW error // SHOW HELP: CREATE VIEW
 
-// TODO(a-robinson): CREATE OR REPLACE VIEW support (#2971).
+opt_view_recursive:
+  /* EMPTY */ { /* no error */ }
+| RECURSIVE { return unimplemented(sqllex, "create recursive view") }
 
 // CREATE TYPE/DOMAIN is not yet supported by CockroachDB but we
 // want to report it with the right issue number.
@@ -4270,11 +4340,11 @@ create_type_stmt:
   // Range types.
 | CREATE TYPE type_name AS RANGE error    { return unimplementedWithIssue(sqllex, 27791) }
   // Base (primitive) types.
-| CREATE TYPE type_name '(' error         { return unimplementedWithIssue(sqllex, 27793) }
+| CREATE TYPE type_name '(' error         { return unimplementedWithIssueDetail(sqllex, 27793, "base") }
   // Shell types, gateway to define base types using the previous syntax.
-| CREATE TYPE type_name                   { return unimplementedWithIssue(sqllex, 27793) }
+| CREATE TYPE type_name                   { return unimplementedWithIssueDetail(sqllex, 27793, "shell") }
   // Domain types.
-| CREATE DOMAIN type_name error           { return unimplementedWithIssue(sqllex, 27796) }
+| CREATE DOMAIN type_name error           { return unimplementedWithIssueDetail(sqllex, 27796, "create") }
 
 // %Help: CREATE INDEX - create a new index
 // %Category: DDL
@@ -4289,7 +4359,7 @@ create_type_stmt:
 // %SeeAlso: CREATE TABLE, SHOW INDEXES, SHOW CREATE,
 // WEBDOCS/create-index.html
 create_index_stmt:
-  CREATE opt_unique INDEX opt_index_name ON table_name opt_using_gin_btree '(' index_params ')' opt_storing opt_interleave opt_partition_by
+  CREATE opt_unique INDEX opt_index_name ON table_name opt_using_gin_btree '(' index_params ')' opt_storing opt_interleave opt_partition_by opt_idx_where
   {
     $$.val = &tree.CreateIndex{
       Name:    tree.Name($4),
@@ -4302,7 +4372,7 @@ create_index_stmt:
       Inverted: $7.bool(),
     }
   }
-| CREATE opt_unique INDEX IF NOT EXISTS index_name ON table_name opt_using_gin_btree '(' index_params ')' opt_storing opt_interleave opt_partition_by
+| CREATE opt_unique INDEX IF NOT EXISTS index_name ON table_name opt_using_gin_btree '(' index_params ')' opt_storing opt_interleave opt_partition_by opt_idx_where
   {
     $$.val = &tree.CreateIndex{
       Name:        tree.Name($7),
@@ -4316,7 +4386,7 @@ create_index_stmt:
       Inverted:    $10.bool(),
     }
   }
-| CREATE opt_unique INVERTED INDEX opt_index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by
+| CREATE opt_unique INVERTED INDEX opt_index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by opt_idx_where
   {
     $$.val = &tree.CreateIndex{
       Name:       tree.Name($5),
@@ -4329,7 +4399,7 @@ create_index_stmt:
       PartitionBy: $13.partitionBy(),
     }
   }
-| CREATE opt_unique INVERTED INDEX IF NOT EXISTS index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by
+| CREATE opt_unique INVERTED INDEX IF NOT EXISTS index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by opt_idx_where
   {
     $$.val = &tree.CreateIndex{
       Name:        tree.Name($8),
@@ -4345,15 +4415,25 @@ create_index_stmt:
   }
 | CREATE opt_unique INDEX error // SHOW HELP: CREATE INDEX
 
+opt_idx_where:
+  /* EMPTY */ { /* no error */ }
+| WHERE error { return unimplementedWithIssue(sqllex, 9683) }
 
 opt_using_gin_btree:
-  USING GIN
+  USING name
   {
-    $$.val = true
-  }
-| USING BTREE
-  {
-    $$.val = false
+    /* FORCE DOC */
+    switch $2 {
+      case "gin":
+        $$.val = true
+      case "btree":
+        $$.val = false
+      case "hash", "gist", "spgist", "brin":
+        return unimplemented(sqllex, "index using " + $2)
+      default:
+        sqllex.Error("unrecognized access method: " + $2)
+        return 1
+    }
   }
 | /* EMPTY */
   {
@@ -4384,20 +4464,20 @@ index_params:
 // expressions in parens. For backwards-compatibility reasons, we allow an
 // expression that's just a function call to be written without parens.
 index_elem:
-  column_name opt_collate_unimpl opt_asc_desc
+  a_expr opt_asc_desc
   {
-    $$.val = tree.IndexElem{Column: tree.Name($1), Direction: $3.dir()}
+    /* FORCE DOC */
+    e := $1.expr()
+    if colName, ok := e.(*tree.UnresolvedName); ok && colName.NumParts == 1 {
+      $$.val = tree.IndexElem{Column: tree.Name(colName.Parts[0]), Direction: $2.dir()}
+    } else {
+      return unimplementedWithIssueDetail(sqllex, 9682, fmt.Sprintf("%T", e))
+    }
   }
-| func_expr_windowless opt_collate_unimpl opt_asc_desc { return unimplemented(sqllex, "index_elem func expr (computed indexes)") }
-| '(' a_expr ')' opt_collate_unimpl opt_asc_desc { return unimplemented(sqllex, "index_elem a_expr (computed indexes)") }
 
 opt_collate:
   COLLATE collation_name { $$ = $2 }
 | /* EMPTY */ { $$ = "" }
-
-opt_collate_unimpl:
-  COLLATE collation_name { return unimplementedWithIssue(sqllex, 16619) }
-| /* EMPTY */ {}
 
 opt_asc_desc:
   ASC
@@ -4929,7 +5009,7 @@ returning_clause:
 //        [RETURNING <exprs...>]
 // %SeeAlso: INSERT, UPSERT, DELETE, WEBDOCS/update.html
 update_stmt:
-  opt_with_clause UPDATE relation_expr_opt_alias
+  opt_with_clause UPDATE table_name_expr_opt_alias_idx
     SET set_clause_list update_from_clause where_clause opt_sort_clause opt_limit_clause returning_clause
   {
     $$.val = &tree.Update{
@@ -5042,30 +5122,34 @@ select_with_parens:
 //      clause.
 //      - 2002-08-28 bjm
 select_no_parens:
-  simple_select
+  simple_select opt_for
   {
     $$.val = &tree.Select{Select: $1.selectStmt()}
   }
-| select_clause sort_clause
+| select_clause sort_clause opt_for
   {
     $$.val = &tree.Select{Select: $1.selectStmt(), OrderBy: $2.orderBy()}
   }
-| select_clause opt_sort_clause select_limit
+| select_clause opt_sort_clause select_limit opt_for
   {
     $$.val = &tree.Select{Select: $1.selectStmt(), OrderBy: $2.orderBy(), Limit: $3.limit()}
   }
-| with_clause select_clause
+| with_clause select_clause opt_for
   {
     $$.val = &tree.Select{With: $1.with(), Select: $2.selectStmt()}
   }
-| with_clause select_clause sort_clause
+| with_clause select_clause sort_clause opt_for
   {
     $$.val = &tree.Select{With: $1.with(), Select: $2.selectStmt(), OrderBy: $3.orderBy()}
   }
-| with_clause select_clause opt_sort_clause select_limit
+| with_clause select_clause opt_sort_clause select_limit opt_for
   {
     $$.val = &tree.Select{With: $1.with(), Select: $2.selectStmt(), OrderBy: $3.orderBy(), Limit: $4.limit()}
   }
+
+opt_for:
+  /* EMPTY */ { /* no error */ }
+| FOR error { return unimplementedWithIssue(sqllex, 6583) }
 
 select_clause:
 // We only provide help if an open parenthesis is provided, because
@@ -5227,8 +5311,12 @@ with_clause:
   {
     $$.val = &tree.With{CTEList: $2.ctes()}
   }
-| WITH_LA cte_list { return unimplemented(sqllex, "with cte_list") }
-| WITH RECURSIVE cte_list { return unimplemented(sqllex, "with recursive") }
+| WITH_LA cte_list
+  {
+    /* SKIP DOC */
+    $$.val = &tree.With{CTEList: $2.ctes()}
+  }
+| WITH RECURSIVE cte_list { return unimplementedWithIssue(sqllex, 21085) }
 
 cte_list:
   common_table_expr
@@ -5617,7 +5705,7 @@ table_ref:
       As:         $3.aliasClause(),
     }
   }
-| LATERAL select_with_parens opt_ordinality opt_alias_clause { return unimplementedWithIssue(sqllex, 24560) }
+| LATERAL select_with_parens opt_ordinality opt_alias_clause { return unimplementedWithIssueDetail(sqllex, 24560, "select") }
 | joined_table
   {
     $$.val = $1.tblExpr()
@@ -5631,8 +5719,7 @@ table_ref:
     f := $1.tblExpr()
     $$.val = &tree.AliasedTableExpr{Expr: f, Ordinality: $2.bool(), As: $3.aliasClause()}
   }
-| LATERAL func_table opt_ordinality opt_alias_clause
-  { return unimplementedWithIssue(sqllex, 24560) }
+| LATERAL func_table opt_ordinality opt_alias_clause { return unimplementedWithIssueDetail(sqllex, 24560, "srf") }
 // The following syntax is a CockroachDB extension:
 //     SELECT ... FROM [ EXPLAIN .... ] WHERE ...
 //     SELECT ... FROM [ SHOW .... ] WHERE ...
@@ -5647,7 +5734,7 @@ table_ref:
 //   will know from the unusual choice that something rather different
 //   is going on and may be pushed by the unusual syntax to
 //   investigate further in the docs.
-| '[' explainable_stmt ']' opt_ordinality opt_alias_clause
+| '[' preparable_stmt ']' opt_ordinality opt_alias_clause
   {
     $$.val = &tree.AliasedTableExpr{Expr: &tree.StatementSource{ Statement: $2.stmt() }, Ordinality: $4.bool(), As: $5.aliasClause() }
   }
@@ -5835,21 +5922,34 @@ relation_expr_list:
 // further ahead whether the first "set" is an alias or the UPDATE's SET
 // keyword. Since "set" is allowed as a column name both interpretations are
 // feasible. We resolve the shift/reduce conflict by giving the first
-// relation_expr_opt_alias production a higher precedence than the SET token
+// table_name_expr_opt_alias_idx production a higher precedence than the SET token
 // has, causing the parser to prefer to reduce, in effect assuming that the SET
 // is not an alias.
-relation_expr_opt_alias:
-  relation_expr %prec UMINUS
+table_name_expr_opt_alias_idx:
+  table_name_expr_with_index %prec UMINUS
   {
-    $$.val = $1.newNormalizableTableNameFromUnresolvedName()
+     $$.val = $1.tblExpr()
   }
-| relation_expr table_alias_name
+| table_name_expr_with_index table_alias_name
   {
-    $$.val = &tree.AliasedTableExpr{Expr: $1.newNormalizableTableNameFromUnresolvedName(), As: tree.AliasClause{Alias: tree.Name($2)}}
+     alias := $1.tblExpr().(*tree.AliasedTableExpr)
+     alias.As = tree.AliasClause{Alias: tree.Name($2)}
+     $$.val = alias
   }
-| relation_expr AS table_alias_name
+| table_name_expr_with_index AS table_alias_name
   {
-    $$.val = &tree.AliasedTableExpr{Expr: $1.newNormalizableTableNameFromUnresolvedName(), As: tree.AliasClause{Alias: tree.Name($3)}}
+     alias := $1.tblExpr().(*tree.AliasedTableExpr)
+     alias.As = tree.AliasClause{Alias: tree.Name($3)}
+     $$.val = alias
+  }
+
+table_name_expr_with_index:
+  table_name opt_index_flags
+  {
+    $$.val = &tree.AliasedTableExpr{
+      Expr: $1.newNormalizableTableNameFromUnresolvedName(),
+      IndexFlags: $2.indexFlags(),
+    }
   }
 
 where_clause:
@@ -5936,8 +6036,9 @@ simple_typename:
   const_typename
 | bit_with_length
 | character_with_length
-| const_interval opt_interval // TODO(pmattis): Support opt_interval?
-| const_interval '(' ICONST ')' { return unimplemented(sqllex, "simple_type const_interval") }
+| const_interval
+| const_interval interval_qualifier { return unimplemented(sqllex, "interval with unit qualifier") }
+| const_interval '(' ICONST ')' { return unimplemented(sqllex, "interval with precision") }
 
 // We have a separate const_typename to allow defaulting fixed-length types
 // such as CHAR() and BIT() to an unspecified length. SQL9x requires that these
@@ -6023,6 +6124,7 @@ const_typename:
   }
 | IDENT
   {
+    /* FORCE DOC */
     // See https://www.postgresql.org/docs/9.1/static/datatype-character.html
     // Postgres supports a special character type named "char" (with the quotes)
     // that is a single-character column type. It's used by system tables.
@@ -6031,11 +6133,21 @@ const_typename:
     if $1 == "char" {
       $$.val = coltypes.QChar
     } else {
-      var err error
-      $$.val, err = coltypes.TypeForNonKeywordTypeName($1)
-      if err != nil {
-        sqllex.Error(err.Error())
-        return 1
+      var ok bool
+      var unimp int
+      $$.val, ok, unimp = coltypes.TypeForNonKeywordTypeName($1)
+      if !ok {
+          switch unimp {
+              case 0:
+                // Note: we can only report an unimplemented error for specific
+                // known type names. Anything else may return PII.
+                sqllex.Error("type does not exist")
+                return 1
+              case -1:
+                return unimplemented(sqllex, "type name " + $1)
+              default:
+                return unimplementedWithIssueDetail(sqllex, unimp, $1)
+          }
       }
     }
   }
@@ -6271,11 +6383,11 @@ const_datetime:
   }
 | TIMETZ
   {
-    return unimplementedWithIssue(sqllex, 26097)
+    return unimplementedWithIssueDetail(sqllex, 26097, "type")
   }
 | TIME WITH_LA TIME ZONE
   {
-    return unimplementedWithIssue(sqllex, 26097)
+    return unimplementedWithIssueDetail(sqllex, 26097, "type")
   }
 | TIMESTAMP
   {
@@ -6299,7 +6411,7 @@ const_interval:
     $$.val = coltypes.Interval
   }
 
-opt_interval:
+interval_qualifier:
   YEAR
   {
     $$.val = tree.Year
@@ -6354,6 +6466,9 @@ opt_interval:
   {
     $$.val = $3.durationField()
   }
+
+opt_interval:
+  interval_qualifier
 | /* EMPTY */
   {
     $$.val = nil
@@ -6364,7 +6479,7 @@ interval_second:
   {
     $$.val = tree.Second
   }
-| SECOND '(' ICONST ')' { return unimplemented(sqllex, "interval_second") }
+| SECOND '(' ICONST ')' { return unimplemented(sqllex, "interval second with precision") }
 
 // General expressions. This is the heart of the expression syntax.
 //
@@ -6746,7 +6861,9 @@ a_expr:
   {
     $$.val = tree.MinVal{}
   }
-// | UNIQUE select_with_parens { return unimplemented(sqllex) }
+// The UNIQUE predicate is a standard SQL feature but not yet implemented
+// in PostgreSQL (as of 10.5).
+| UNIQUE '(' error { return unimplemented(sqllex, "UNIQUE predicate") }
 
 // Restricted expressions
 //
@@ -7018,9 +7135,7 @@ d_expr:
   {
     $$.val = $2.expr()
   }
-
-// TODO(pmattis): Support this notation?
-// | GROUPING '(' expr_list ')' { return unimplemented(sqllex) }
+| GROUPING '(' expr_list ')' { return unimplemented(sqllex, "d_expr grouping") }
 
 func_application:
   func_name '(' ')'
@@ -7077,7 +7192,7 @@ func_expr_windowless:
 
 // Special expressions that are considered to be functions.
 func_expr_common_subexpr:
-  COLLATION FOR '(' a_expr ')' { return unimplemented(sqllex, "func_expr_common_subexpr collation") }
+  COLLATION FOR '(' a_expr ')' { return unimplemented(sqllex, "func_expr_common_subexpr collation for") }
 | CURRENT_DATE
   {
     $$.val = &tree.FuncExpr{Func: tree.WrapFunction($1)}
@@ -7098,7 +7213,7 @@ func_expr_common_subexpr:
   }
 | CURRENT_TIME
   {
-    return unimplementedWithIssue(sqllex, 26097)
+    return unimplementedWithIssueDetail(sqllex, 26097, "current_time")
   }
 | CURRENT_USER
   {
@@ -7178,7 +7293,7 @@ special_function:
 | CURRENT_TIMESTAMP '(' error { return helpWithFunctionByName(sqllex, $1) }
 | CURRENT_TIME '(' ')'
   {
-    return unimplementedWithIssue(sqllex, 26097)
+    return unimplementedWithIssueDetail(sqllex, 26097, "current_time")
   }
 | CURRENT_TIME '(' error { return helpWithFunctionByName(sqllex, $1) }
 | CURRENT_USER '(' ')'
@@ -8223,6 +8338,7 @@ unreserved_keyword:
 | ACTION
 | ADD
 | ADMIN
+| AGGREGATE
 | ALTER
 | AT
 | BACKUP
@@ -8230,7 +8346,6 @@ unreserved_keyword:
 | BIGSERIAL
 | BLOB
 | BOOL
-| BTREE
 | BY
 | BYTEA
 | BYTES
@@ -8249,6 +8364,7 @@ unreserved_keyword:
 | CONFIGURATIONS
 | CONFIGURE
 | CONSTRAINTS
+| CONVERSION
 | COPY
 | COVERING
 | CUBE
@@ -8277,6 +8393,7 @@ unreserved_keyword:
 | EXPERIMENTAL_REPLICA
 | EXPLAIN
 | EXPORT
+| EXTENSION
 | FILES
 | FILTER
 | FIRST
@@ -8284,7 +8401,8 @@ unreserved_keyword:
 | FLOAT8
 | FOLLOWING
 | FORCE_INDEX
-| GIN
+| FUNCTION
+| GLOBAL
 | GRANTS
 | GROUPS
 | HIGH
@@ -8312,6 +8430,7 @@ unreserved_keyword:
 | KEY
 | KEYS
 | KV
+| LANGUAGE
 | LC_COLLATE
 | LC_CTYPE
 | LEASE
@@ -8321,6 +8440,7 @@ unreserved_keyword:
 | LOCAL
 | LOW
 | MATCH
+| MATERIALIZED
 | MINUTE
 | MONTH
 | NAMES
@@ -8334,6 +8454,7 @@ unreserved_keyword:
 | OFF
 | OID
 | OIDVECTOR
+| OPERATOR
 | OPTION
 | OPTIONS
 | ORDINALITY
@@ -8349,6 +8470,7 @@ unreserved_keyword:
 | PRECEDING
 | PREPARE
 | PRIORITY
+| PUBLICATION
 | QUERIES
 | QUERY
 | RANGE
@@ -8364,6 +8486,7 @@ unreserved_keyword:
 | RELEASE
 | RENAME
 | REPEATABLE
+| REPLACE
 | RESET
 | RESTORE
 | RESTRICT
@@ -8374,6 +8497,7 @@ unreserved_keyword:
 | ROLLBACK
 | ROLLUP
 | ROWS
+| RULE
 | SETTING
 | SETTINGS
 | STATUS
@@ -8389,6 +8513,7 @@ unreserved_keyword:
 | SERIAL2
 | SERIAL4
 | SERIAL8
+| SERVER
 | SEQUENCE
 | SEQUENCES
 | SESSION
@@ -8408,6 +8533,7 @@ unreserved_keyword:
 | STRICT
 | STRING
 | SPLIT
+| SUBSCRIPTION
 | SYNTAX
 | SYSTEM
 | TABLES
@@ -8420,11 +8546,14 @@ unreserved_keyword:
 | TIMESTAMPTZ
 | TRACE
 | TRANSACTION
+| TRIGGER
 | TRUNCATE
+| TRUSTED
 | TYPE
 | UNBOUNDED
 | UNCOMMITTED
 | UNKNOWN
+| UNLOGGED
 | UPDATE
 | UPSERT
 | UUID

@@ -577,24 +577,26 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			LeftType:   types.Timestamp,
 			RightType:  types.Interval,
 			ReturnType: types.Timestamp,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				return MakeDTimestamp(duration.Add(left.(*DTimestamp).Time, right.(*DInterval).Duration), time.Microsecond), nil
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				return MakeDTimestamp(duration.Add(ctx,
+					left.(*DTimestamp).Time, right.(*DInterval).Duration), time.Microsecond), nil
 			},
 		},
 		&BinOp{
 			LeftType:   types.Interval,
 			RightType:  types.Timestamp,
 			ReturnType: types.Timestamp,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				return MakeDTimestamp(duration.Add(right.(*DTimestamp).Time, left.(*DInterval).Duration), time.Microsecond), nil
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				return MakeDTimestamp(duration.Add(ctx,
+					right.(*DTimestamp).Time, left.(*DInterval).Duration), time.Microsecond), nil
 			},
 		},
 		&BinOp{
 			LeftType:   types.TimestampTZ,
 			RightType:  types.Interval,
 			ReturnType: types.TimestampTZ,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				t := duration.Add(left.(*DTimestampTZ).Time, right.(*DInterval).Duration)
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				t := duration.Add(ctx, left.(*DTimestampTZ).Time, right.(*DInterval).Duration)
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -602,8 +604,8 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			LeftType:   types.Interval,
 			RightType:  types.TimestampTZ,
 			ReturnType: types.TimestampTZ,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				t := duration.Add(right.(*DTimestampTZ).Time, left.(*DInterval).Duration)
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				t := duration.Add(ctx, right.(*DTimestampTZ).Time, left.(*DInterval).Duration)
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -621,7 +623,7 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			ReturnType: types.TimestampTZ,
 			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
 				leftTZ := MakeDTimestampTZFromDate(ctx.GetLocation(), left.(*DDate))
-				t := duration.Add(leftTZ.Time, right.(*DInterval).Duration)
+				t := duration.Add(ctx, leftTZ.Time, right.(*DInterval).Duration)
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -631,7 +633,7 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			ReturnType: types.TimestampTZ,
 			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
 				rightTZ := MakeDTimestampTZFromDate(ctx.GetLocation(), right.(*DDate))
-				t := duration.Add(rightTZ.Time, left.(*DInterval).Duration)
+				t := duration.Add(ctx, rightTZ.Time, left.(*DInterval).Duration)
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -811,16 +813,18 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			LeftType:   types.Timestamp,
 			RightType:  types.Interval,
 			ReturnType: types.Timestamp,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				return MakeDTimestamp(duration.Add(left.(*DTimestamp).Time, right.(*DInterval).Duration.Mul(-1)), time.Microsecond), nil
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				return MakeDTimestamp(duration.Add(ctx,
+					left.(*DTimestamp).Time, right.(*DInterval).Duration.Mul(-1)), time.Microsecond), nil
 			},
 		},
 		&BinOp{
 			LeftType:   types.TimestampTZ,
 			RightType:  types.Interval,
 			ReturnType: types.TimestampTZ,
-			Fn: func(_ *EvalContext, left Datum, right Datum) (Datum, error) {
-				t := duration.Add(left.(*DTimestampTZ).Time, right.(*DInterval).Duration.Mul(-1))
+			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
+				t := duration.Add(ctx,
+					left.(*DTimestampTZ).Time, right.(*DInterval).Duration.Mul(-1))
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -830,7 +834,8 @@ var BinOps = map[BinaryOperator]binOpOverload{
 			ReturnType: types.TimestampTZ,
 			Fn: func(ctx *EvalContext, left Datum, right Datum) (Datum, error) {
 				leftTZ := MakeDTimestampTZFromDate(ctx.GetLocation(), left.(*DDate))
-				t := duration.Add(leftTZ.Time, right.(*DInterval).Duration.Mul(-1))
+				t := duration.Add(ctx,
+					leftTZ.Time, right.(*DInterval).Duration.Mul(-1))
 				return MakeDTimestampTZ(t, time.Microsecond), nil
 			},
 		},
@@ -2393,6 +2398,9 @@ type EvalContextTestingKnobs struct {
 	// evaluations should assert that the returned Datum matches the
 	// expected ReturnType of the function.
 	AssertBinaryExprReturnTypes bool
+	// DisableOptimizerRuleProbability is the probability that any given
+	// transformation rule in the optimizer is disabled.
+	DisableOptimizerRuleProbability float64
 }
 
 var _ base.ModuleTestingKnobs = &EvalContextTestingKnobs{}
@@ -2455,7 +2463,7 @@ type EvalContext struct {
 
 	// InternalExecutor gives access to an executor to be used for running
 	// "internal" statements. It may seem bizarre that "expression evaluation" may
-	// need to run a statement, and yet many builting function do it.
+	// need to run a statement, and yet many builtin functions do it.
 	// Note that the executor will be "session-bound" - it will inherit session
 	// variables from a parent session.
 	InternalExecutor SessionBoundInternalExecutor
@@ -2628,6 +2636,14 @@ func (ctx *EvalContext) SetTxnTimestamp(ts time.Time) {
 // SetStmtTimestamp sets the corresponding timestamp in the EvalContext.
 func (ctx *EvalContext) SetStmtTimestamp(ts time.Time) {
 	ctx.StmtTimestamp = ts
+}
+
+// GetAdditionMode implements duration.Context.
+func (ctx *EvalContext) GetAdditionMode() duration.AdditionMode {
+	if ctx == nil {
+		return duration.AdditionModeCompatible
+	}
+	return ctx.SessionData.DurationAdditionMode
 }
 
 // GetLocation returns the session timezone.
@@ -3170,9 +3186,9 @@ func PerformCast(ctx *EvalContext, d Datum, t coltypes.CastTargetType) (Datum, e
 		// TODO(knz): Timestamp from float, decimal.
 		switch d := d.(type) {
 		case *DString:
-			return ParseDTimestamp(string(*d), time.Microsecond)
+			return ParseDTimestamp(ctx, string(*d), time.Microsecond)
 		case *DCollatedString:
-			return ParseDTimestamp(d.Contents, time.Microsecond)
+			return ParseDTimestamp(ctx, d.Contents, time.Microsecond)
 		case *DDate:
 			year, month, day := timeutil.Unix(int64(*d)*SecondsInDay, 0).Date()
 			return MakeDTimestamp(time.Date(year, month, day, 0, 0, 0, 0, time.UTC), time.Microsecond), nil
@@ -3482,7 +3498,7 @@ func (expr *ComparisonExpr) Eval(ctx *EvalContext) (Datum, error) {
 		} else if array, ok := AsDArray(right); ok {
 			datums = array.Array
 		} else {
-			return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled right expression %s", right)
+			return nil, pgerror.NewAssertionErrorf("unhandled right expression %s", right)
 		}
 		return evalDatumsCmp(ctx, op, expr.SubOperator, expr.fn, left, datums)
 	}
@@ -3505,8 +3521,7 @@ func (expr *ComparisonExpr) Eval(ctx *EvalContext) (Datum, error) {
 // ValueGenerator for use by set projections.
 func (expr *FuncExpr) EvalArgsAndGetGenerator(ctx *EvalContext) (ValueGenerator, error) {
 	if expr.fn == nil || expr.fnProps.Class != GeneratorClass {
-		return nil, pgerror.NewErrorf(pgerror.CodeInternalError,
-			"programming error: cannot call EvalArgsAndGetGenerator() on non-aggregate function: %q", ErrString(expr))
+		return nil, pgerror.NewAssertionErrorf("cannot call EvalArgsAndGetGenerator() on non-aggregate function: %q", ErrString(expr))
 	}
 	nullArg, args, err := expr.evalArgs(ctx)
 	if err != nil || nullArg {
@@ -3708,7 +3723,7 @@ func (expr *ParenExpr) Eval(ctx *EvalContext) (Datum, error) {
 
 // Eval implements the TypedExpr interface.
 func (expr *RangeCond) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
@@ -3734,32 +3749,32 @@ func (expr *UnaryExpr) Eval(ctx *EvalContext) (Datum, error) {
 
 // Eval implements the TypedExpr interface.
 func (expr DefaultVal) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
 func (expr UnqualifiedStar) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
 func (expr *UnresolvedName) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
 func (expr *AllColumnsSelector) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
 func (expr *TupleStar) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
 func (expr *ColumnItem) Eval(ctx *EvalContext) (Datum, error) {
-	return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unhandled type %T", expr)
+	return nil, pgerror.NewAssertionErrorf("unhandled type %T", expr)
 }
 
 // Eval implements the TypedExpr interface.
@@ -3779,8 +3794,7 @@ func (t *Tuple) Eval(ctx *EvalContext) (Datum, error) {
 func arrayOfType(typ types.T) (*DArray, error) {
 	arrayTyp, ok := typ.(types.TArray)
 	if !ok {
-		return nil, pgerror.NewErrorf(
-			pgerror.CodeInternalError, "array node type (%v) is not types.TArray", typ)
+		return nil, pgerror.NewAssertionErrorf("array node type (%v) is not types.TArray", typ)
 	}
 	if !types.IsValidArrayElementType(arrayTyp.Typ) {
 		return nil, pgerror.NewErrorf(pgerror.CodeFeatureNotSupportedError, "arrays of %s not allowed", arrayTyp.Typ)
@@ -3826,8 +3840,7 @@ func (t *ArrayFlatten) Eval(ctx *EvalContext) (Datum, error) {
 
 	tuple, ok := d.(*DTuple)
 	if !ok {
-		return nil, pgerror.NewErrorf(
-			pgerror.CodeInternalError, "array subquery result (%v) is not DTuple", d)
+		return nil, pgerror.NewAssertionErrorf("array subquery result (%v) is not DTuple", d)
 	}
 	array.Array = tuple.D
 	return array, nil
@@ -3955,7 +3968,7 @@ func (t *Placeholder) Eval(ctx *EvalContext) (Datum, error) {
 	typ, typed := ctx.Placeholders.Type(t.Name, false)
 	if !typed {
 		// All placeholders should be typed at this point.
-		return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "missing type for placeholder %s", t.Name)
+		return nil, pgerror.NewAssertionErrorf("missing type for placeholder %s", t.Name)
 	}
 	if !e.ResolvedType().Equivalent(typ) {
 		// This happens when we overrode the placeholder's type during type

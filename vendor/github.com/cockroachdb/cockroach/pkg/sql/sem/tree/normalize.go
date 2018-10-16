@@ -471,7 +471,10 @@ func (expr *ComparisonExpr) normalize(v *NormalizeVisitor) TypedExpr {
 			}
 			if len(tupleCopy.D) == 0 {
 				// NULL IN <empty-tuple> is false.
-				return DBoolFalse
+				if expr.Operator == In {
+					return DBoolFalse
+				}
+				return DBoolTrue
 			}
 			if expr.TypedLeft() == DNull {
 				// NULL IN <non-empty-tuple> is NULL.
@@ -793,7 +796,7 @@ func invertComparisonOp(op ComparisonOperator) (ComparisonOperator, error) {
 	case LT:
 		return GT, nil
 	default:
-		return op, pgerror.NewErrorf(pgerror.CodeInternalError, "internal error: unable to invert: %s", op)
+		return op, pgerror.NewAssertionErrorf("unable to invert: %s", op)
 	}
 }
 

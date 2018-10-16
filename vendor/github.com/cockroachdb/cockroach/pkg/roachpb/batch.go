@@ -101,6 +101,13 @@ func (ba *BatchRequest) IsReadOnly() bool {
 	return len(ba.Requests) > 0 && !ba.hasFlag(isWrite|isAdmin)
 }
 
+// RequiresLeaseHolder returns true if the request can only be served by the
+// leaseholders of the ranges it addresses.
+func (ba *BatchRequest) RequiresLeaseHolder() bool {
+	return !ba.IsReadOnly() || ba.Header.ReadConsistency.RequiresReadLease()
+
+}
+
 // IsReverse returns true iff the BatchRequest contains a reverse request.
 func (ba *BatchRequest) IsReverse() bool {
 	return ba.hasFlag(isReverse)
@@ -330,11 +337,13 @@ func actualSpan(req Request, resp Response) (Span, bool) {
 	return h.Span(), true
 }
 
-// Combine implements the Combinable interface. It combines each slot of the
-// given request into the corresponding slot of the base response. The number
-// of slots must be equal and the respective slots must be combinable.
+// Combine combines each slot of the given request into the corresponding slot
+// of the base response. The number of slots must be equal and the respective
+// slots must be combinable.
 // On error, the receiver BatchResponse is in an invalid state. In either case,
 // the supplied BatchResponse must not be used any more.
+// It is an error to call Combine on responses with errors in them. The
+// DistSender strips the errors from any responses that it combines.
 func (br *BatchResponse) Combine(otherBatch *BatchResponse, positions []int) error {
 	if err := br.BatchResponse_Header.combine(otherBatch.BatchResponse_Header); err != nil {
 		return err
@@ -498,15 +507,4 @@ func (ba BatchRequest) String() string {
 		}
 	}
 	return strings.Join(str, ", ")
-}
-
-// TODO(marc): we should assert
-// var _ security.RequestWithUser = &BatchRequest{}
-// here, but we need to break cycles first.
-
-// GetUser implements security.RequestWithUser.
-// KV messages are always sent by the node user.
-func (*BatchRequest) GetUser() string {
-	// TODO(marc): we should use security.NodeUser here, but we need to break cycles first.
-	return "node"
 }

@@ -210,7 +210,7 @@ func MakeDBool(d DBool) *DBool {
 func MustBeDBool(e Expr) DBool {
 	b, ok := AsDBool(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DBool, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DBool, found %T", e))
 	}
 	return b
 }
@@ -347,8 +347,7 @@ func GetBool(d Datum) (DBool, error) {
 	if d == DNull {
 		return DBool(false), nil
 	}
-	return false, pgerror.NewErrorf(
-		pgerror.CodeInternalError, "cannot convert %s to type %s", d.ResolvedType(), types.Bool)
+	return false, pgerror.NewAssertionErrorf("cannot convert %s to type %s", d.ResolvedType(), types.Bool)
 }
 
 // ResolvedType implements the TypedExpr interface.
@@ -458,7 +457,7 @@ func MakeDBitArray(bitLen uint) DBitArray {
 func MustBeDBitArray(e Expr) *DBitArray {
 	b, ok := AsDBitArray(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DBitArray, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DBitArray, found %T", e))
 	}
 	return b
 }
@@ -617,7 +616,7 @@ func AsDInt(e Expr) (DInt, bool) {
 func MustBeDInt(e Expr) DInt {
 	i, ok := AsDInt(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DInt, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DInt, found %T", e))
 	}
 	return i
 }
@@ -1047,7 +1046,7 @@ func AsDString(e Expr) (DString, bool) {
 func MustBeDString(e Expr) DString {
 	i, ok := AsDString(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DString, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DString, found %T", e))
 	}
 	return i
 }
@@ -1259,7 +1258,7 @@ func NewDBytes(d DBytes) *DBytes {
 func MustBeDBytes(e Expr) DBytes {
 	i, ok := AsDBytes(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DBytes, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DBytes, found %T", e))
 	}
 	return i
 }
@@ -1487,7 +1486,7 @@ func AsDIPAddr(e Expr) (DIPAddr, bool) {
 func MustBeDIPAddr(e Expr) DIPAddr {
 	i, ok := AsDIPAddr(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DIPAddr, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DIPAddr, found %T", e))
 	}
 	return i
 }
@@ -1939,7 +1938,7 @@ func checkForMissingZone(t time.Time, parseLoc *time.Location) error {
 
 // ParseDTimestamp parses and returns the *DTimestamp Datum value represented by
 // the provided string in UTC, or an error if parsing is unsuccessful.
-func ParseDTimestamp(s string, precision time.Duration) (*DTimestamp, error) {
+func ParseDTimestamp(ctx duration.Context, s string, precision time.Duration) (*DTimestamp, error) {
 	// `ParseInLocation` uses the location provided both for resolving an explicit
 	// abbreviated zone as well as for the default zone if not specified
 	// explicitly. For non-'WITH TIME ZONE' strings (which this is used to parse),
@@ -1952,7 +1951,7 @@ func ParseDTimestamp(s string, precision time.Duration) (*DTimestamp, error) {
 	}
 	// Truncate the timezone. DTimestamp doesn't carry its timezone around.
 	_, offset := t.Zone()
-	t = duration.Add(t, duration.FromInt64(int64(offset))).UTC()
+	t = duration.Add(ctx, t, duration.FromInt64(int64(offset))).UTC()
 	return MakeDTimestamp(t, precision), nil
 }
 
@@ -2162,7 +2161,7 @@ func (d *DTimestampTZ) Size() uintptr {
 //             '2012-01-01 12:00:00'.
 func (d *DTimestampTZ) stripTimeZone(ctx *EvalContext) *DTimestamp {
 	_, locOffset := d.Time.In(ctx.GetLocation()).Zone()
-	newTime := duration.Add(d.Time.UTC(), duration.FromInt64(int64(locOffset)))
+	newTime := duration.Add(ctx, d.Time.UTC(), duration.FromInt64(int64(locOffset)))
 	return MakeDTimestamp(newTime, time.Microsecond)
 }
 
@@ -2184,6 +2183,12 @@ const (
 	Hour
 	Minute
 	Second
+
+	// While not technically part of the SQL standard for intervals, we provide
+	// Millisecond as a field to allow code to parse intervals with a default unit
+	// of milliseconds, which is useful for some internal use cases like
+	// statement_timeout.
+	Millisecond
 )
 
 // ParseDInterval parses and returns the *DInterval Datum value represented by the provided
@@ -2265,6 +2270,8 @@ func parseDInterval(s string, field DurationField) (*DInterval, error) {
 			ret.Nanos = time.Minute.Nanoseconds() * int64(f)
 		case Second:
 			ret.Nanos = int64(float64(time.Second.Nanoseconds()) * f)
+		case Millisecond:
+			ret.Nanos = int64(float64(time.Millisecond.Nanoseconds()) * f)
 		default:
 			panic(fmt.Sprintf("unhandled DurationField constant %d", field))
 		}
@@ -2427,7 +2434,7 @@ func AsDJSON(e Expr) (*DJSON, bool) {
 func MustBeDJSON(e Expr) DJSON {
 	i, ok := AsDJSON(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DJSON, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DJSON, found %T", e))
 	}
 	return *i
 }
@@ -2476,7 +2483,7 @@ func AsJSON(d Datum) (json.JSON, error) {
 			return json.NullJSONValue, nil
 		}
 
-		return nil, pgerror.NewErrorf(pgerror.CodeInternalError, "unexpected type %T for AsJSON", d)
+		return nil, pgerror.NewAssertionErrorf("unexpected type %T for AsJSON", d)
 	}
 }
 
@@ -3000,7 +3007,7 @@ func AsDArray(e Expr) (*DArray, bool) {
 func MustBeDArray(e Expr) *DArray {
 	i, ok := AsDArray(e)
 	if !ok {
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "expected *DArray, found %T", e))
+		panic(pgerror.NewAssertionErrorf("expected *DArray, found %T", e))
 	}
 	return i
 }
@@ -3131,8 +3138,7 @@ var errNonHomogeneousArray = pgerror.NewError(pgerror.CodeArraySubscriptError, "
 // consistent with the type of the Datum.
 func (d *DArray) Append(v Datum) error {
 	if v != DNull && !d.ParamTyp.Equivalent(v.ResolvedType()) {
-		return pgerror.NewErrorf(
-			pgerror.CodeInternalError, "cannot append %s to array containing %s", d.ParamTyp,
+		return pgerror.NewAssertionErrorf("cannot append %s to array containing %s", d.ParamTyp,
 			v.ResolvedType())
 	}
 	if d.Len() >= maxArrayLength {
@@ -3319,14 +3325,13 @@ func wrapWithOid(d Datum, oid oid.Oid) Datum {
 	case *DString:
 	case *DArray:
 	case dNull, *DOidWrapper:
-		panic(pgerror.NewErrorf(
-			pgerror.CodeInternalError, "cannot wrap %T with an Oid", v))
+		panic(pgerror.NewAssertionErrorf("cannot wrap %T with an Oid", v))
 	default:
 		// Currently only *DInt, *DString, *DArray are hooked up to work with
 		// *DOidWrapper. To support another base Datum type, replace all type
 		// assertions to that type with calls to functions like AsDInt and
 		// MustBeDInt.
-		panic(pgerror.NewErrorf(pgerror.CodeInternalError, "unsupported Datum type passed to wrapWithOid: %T", d))
+		panic(pgerror.NewAssertionErrorf("unsupported Datum type passed to wrapWithOid: %T", d))
 	}
 	return &DOidWrapper{
 		Wrapped: d,

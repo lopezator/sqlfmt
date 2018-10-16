@@ -241,7 +241,7 @@ func (rh *ResponseHeader) combine(otherRH ResponseHeader) error {
 		rh.Txn = nil
 	}
 	if rh.ResumeSpan != nil {
-		panic(fmt.Sprintf("combining %+v with %+v", rh.ResumeSpan, otherRH.ResumeSpan))
+		return errors.Errorf("combining %+v with %+v", rh.ResumeSpan, otherRH.ResumeSpan)
 	}
 	rh.ResumeSpan = otherRH.ResumeSpan
 	rh.ResumeReason = otherRH.ResumeReason
@@ -510,6 +510,9 @@ func (*AdminTransferLeaseRequest) Method() Method { return AdminTransferLease }
 func (*AdminChangeReplicasRequest) Method() Method { return AdminChangeReplicas }
 
 // Method implements the Request interface.
+func (*AdminRelocateRangeRequest) Method() Method { return AdminRelocateRange }
+
+// Method implements the Request interface.
 func (*HeartbeatTxnRequest) Method() Method { return HeartbeatTxn }
 
 // Method implements the Request interface.
@@ -676,6 +679,12 @@ func (atlr *AdminTransferLeaseRequest) ShallowCopy() Request {
 
 // ShallowCopy implements the Request interface.
 func (acrr *AdminChangeReplicasRequest) ShallowCopy() Request {
+	shallowCopy := *acrr
+	return &shallowCopy
+}
+
+// ShallowCopy implements the Request interface.
+func (acrr *AdminRelocateRangeRequest) ShallowCopy() Request {
 	shallowCopy := *acrr
 	return &shallowCopy
 }
@@ -1020,6 +1029,7 @@ func (*AdminSplitRequest) flags() int          { return isAdmin | isAlone }
 func (*AdminMergeRequest) flags() int          { return isAdmin | isAlone }
 func (*AdminTransferLeaseRequest) flags() int  { return isAdmin | isAlone }
 func (*AdminChangeReplicasRequest) flags() int { return isAdmin | isAlone }
+func (*AdminRelocateRangeRequest) flags() int  { return isAdmin | isAlone }
 func (*HeartbeatTxnRequest) flags() int        { return isWrite | isTxn }
 func (*GCRequest) flags() int                  { return isWrite | isRange }
 func (*PushTxnRequest) flags() int             { return isWrite | isAlone }
