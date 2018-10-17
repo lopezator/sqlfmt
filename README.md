@@ -122,22 +122,14 @@ Each release comes with pre-compiled binaries for several platforms:
 
 https://github.com/lopezator/sqlfmt/releases
 
-Anyway, if you want to cross-compile from source, you can do it using docker in a handy way:
+Anyway, if you want to compile your binaries from source, now, thanks to cockroachdb folks effort, sqlfmt is CGO free and compiling is easy as:
 
-1. Build container:
+```
+$> GOOS=<GOOS> GOARCH=<GOARCH> go build cmd/sqlfmt/main.go
+```
 
-    ```
-    $> docker run --rm -t -d --name="sqlfmt-builder" -v="$PWD:/go/src/github.com/lopezator/sqlfmt" --workdir="/go/src/github.com/lopezator/sqlfmt" --entrypoint="cat" cockroachdb/builder:20180813-101406
-    ```
+Example:
 
-2. Build binaries inside the container:
-
-    ```
-    $> docker exec -it sqlfmt-builder make build
-    ```
-
-3. Stop container:
-
-    ```
-    $> docker container stop sqlfmt-builder
-    ```
+```
+$> GOOS=linux GOARCH=amd64 go build cmd/sqlfmt/main.go
+```
