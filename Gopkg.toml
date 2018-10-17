@@ -1,6 +1,6 @@
 [[constraint]]
   name = "github.com/cockroachdb/cockroach"
-  revision = "61a6a4ec4704f5b53df47eba611b5a4353445de7"
+  revision = "16d352e046a235be068568642568ca07804a2004"
   source = "github.com/cockroachdb/cockroach-gen"
 
 [[constraint]]

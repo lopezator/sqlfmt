@@ -72,7 +72,7 @@
   version = "v1.1.0"
 
 [[projects]]
-  digest = "1:dfb97719efdd03a1a1cc974a4391054009220e99789a87d6e87d986d4bf3a1cb"
+  digest = "1:4b951272738a37d857d30d2796dc948142c0ec334595950a84a637d5b8a07f6a"
   name = "github.com/cockroachdb/cockroach"
   packages = [
     "pkg/base",
@@ -128,7 +128,7 @@
     "pkg/util/uuid",
   ]
   pruneopts = "UT"
-  revision = "61a6a4ec4704f5b53df47eba611b5a4353445de7"
+  revision = "16d352e046a235be068568642568ca07804a2004"
   source = "github.com/cockroachdb/cockroach-gen"
 
 [[projects]]
