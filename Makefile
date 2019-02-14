@@ -3,6 +3,24 @@
 APP    =  sqlfmt
 SHELL  := /bin/bash
 
+VERSION ?= v1.0.0
+OS      ?= linux darwin windows
+GOPROXY ?= https://athens.azurefd.net
+
+.PHONY: build
+build:
+	@for app in $(APP) ; do \
+		for os in $(OS) ; do \
+			ext=""; \
+			if [ "$$os" == "windows" ]; then \
+				ext=".exe"; \
+			fi; \
+			GOPROXY=$(GOPROXY) GOOS=$$os GOARCH=amd64 CGO_ENABLED=0 \
+			go build -o ./bin/$$app-$(VERSION)-$$os-amd64$$ext \
+			./cmd/$$app; \
+		done; \
+	done
+
 .PHONY: sql-fmt
 sql-fmt:
 	@echo "Running sql-fmt..."

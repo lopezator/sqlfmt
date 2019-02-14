@@ -6,15 +6,11 @@ PostgreSQL and maybe other SQL should work good also.
 
 ## Installation
 
-sqlfmt uses internal codebase of [cockroachdb 2.1 release](https://github.com/cockroachdb/cockroach/tree/release-2.1) but decouples from the root project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb project.
+sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/cockroach) but decouples from the root project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb project.
 
-Like cockroachdb 2.1 release, **sqlfmt requires go 1.10 or newer to work**.
+To use it as a system tool, you can just download the binary you can just [download the binary](https://github.com/lopezator/sqlfmt/releases).
 
-Just execute the following command and you are good to go:
-
-```sh
-$ go get github.com/lopezator/sqlfmt/...
-```
+If you want to include it in other GO project as a tool, you probably should use the [tools.go method](https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module).
 
 ## Usage
 
@@ -122,14 +118,4 @@ Each release comes with pre-compiled binaries for several platforms:
 
 https://github.com/lopezator/sqlfmt/releases
 
-Anyway, if you want to compile your binaries from source, now, thanks to cockroachdb folks effort, sqlfmt is CGO free and compiling is easy as:
-
-```
-$> GOOS=<GOOS> GOARCH=<GOARCH> go build cmd/sqlfmt/main.go
-```
-
-Example:
-
-```
-$> GOOS=linux GOARCH=amd64 go build cmd/sqlfmt/main.go
-```
+Anyway, if you want to compile your own binaries from source, you can just execute `make build`.
