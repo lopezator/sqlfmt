@@ -10,8 +10,6 @@ sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/co
 
 To use it as a system tool, you can just download the binary you can just [download the binary](https://github.com/lopezator/sqlfmt/releases).
 
-If you want to include it in other GO project as a tool, you probably should use the [tools.go method](https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module).
-
 ## Usage
 
 ```
