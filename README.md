@@ -8,7 +8,7 @@ PostgreSQL and maybe other SQL should work good also.
 
 sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/cockroach) but decouples from the root project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb project.
 
-To use it as a system tool, you can just download the binary you can just [download the binary](https://github.com/lopezator/sqlfmt/releases).
+To use it as a system tool, you can just [download the binary](https://github.com/lopezator/sqlfmt/releases).
 
 ## Usage
 
