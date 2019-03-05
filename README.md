@@ -6,9 +6,23 @@ PostgreSQL and maybe other SQL should work good also.
 
 ## Installation
 
-sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/cockroach) but decouples from the root project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb project.
+sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/cockroach) but decouples from the root 
+project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb 
+project.
 
-To use it as a system tool, you can just [download the binary](https://github.com/lopezator/sqlfmt/releases).
+To use it as a system tool, you can just 
+[download the precompiled binary for your platform](https://github.com/lopezator/sqlfmt/releases).
+
+If you use go 1.12 or newer:
+ 
+a) You can simply do: 
+
+```
+$> go install github.com/lopezator/cmd/sqlfmt
+```
+
+b) Use the [tools.go method](https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module) 
+which is the recommended way to install project tools in a module aware project.
 
 ## Usage
 

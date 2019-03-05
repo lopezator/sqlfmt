@@ -3,7 +3,7 @@
 APP    =  sqlfmt
 SHELL  := /bin/bash
 
-VERSION ?= v1.0.0
+VERSION ?= v1.1.0
 OS      ?= linux darwin windows
 GOPROXY ?= https://athens.azurefd.net
 
