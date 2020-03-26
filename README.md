@@ -10,19 +10,8 @@ sqlfmt uses internal codebase of [cockroachdb](https://github.com/cockroachdb/co
 project so you can use it in a handy way on command line and CI without having to install/build the entire cockroachdb 
 project.
 
-To use it as a system tool, you can just 
-[download the precompiled binary for your platform](https://github.com/lopezator/sqlfmt/releases).
-
-If you use go 1.12 or newer:
- 
-a) You can simply do: 
-
-```
-$> go install github.com/lopezator/cmd/sqlfmt
-```
-
-b) Use the [tools.go method](https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module) 
-which is the recommended way to install project tools in a module aware project.
+You can just 
+[download the precompiled binary for your platform](https://github.com/lopezator/sqlfmt/releases), or build it by your own by executing `make build`.
 
 ## Usage
 
@@ -123,11 +112,3 @@ Dependencies or this targets are [bash](https://www.gnu.org/software/bash/) & [m
     ```
 
     Error is self-descriptive, running `make sql-fmt` again will make `make sql-check` pass.
-
-## Build cross-platform binaries from source
-
-Each release comes with pre-compiled binaries for several platforms:
-
-https://github.com/lopezator/sqlfmt/releases
-
-Anyway, if you want to compile your own binaries from source, you can just execute `make build`.
