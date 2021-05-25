@@ -3,7 +3,7 @@
 APP    =  sqlfmt
 SHELL  := /bin/bash
 
-VERSION ?= v1.2.0
+VERSION ?= v1.3.0
 OS      ?= linux darwin windows
 
 .PHONY: build

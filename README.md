@@ -80,7 +80,7 @@ The Makefile shipped with the project includes two targets useful for dev & CI t
 
 Dependencies or this targets are [bash](https://www.gnu.org/software/bash/) & [moreutils](https://joeyh.name/code/moreutils/) for your platform of preference, instalable via apt, brew, apk, yum or whatever.
 
-1. [Target](Makefile#72) to format all `*.sql` files on local project (excluding vendor folder):
+1. [Target](Makefile#72) to format all `*.sql` files on local project:
 
     ```
     $> make sql-fmt
@@ -95,9 +95,9 @@ Dependencies or this targets are [bash](https://www.gnu.org/software/bash/) & [m
 
     Correcting the typo on `examples/sql_incorrect.sql` and running `make sql-fmt` again will format `examples/*.sql` contents.
 
-    This target will check syntax and **will overwrite** all `*.sql` files (excluding vendor folder) applying format, so is **ideal for dev usage** before committing.
+    This target will check syntax and **will overwrite** all `*.sql` files applying format, so is **ideal for dev usage** before committing.
 
-2. [Target](Makefile#78) to check if all `*.sql` files on local project have the correct syntax and format (excluding vendor folder):
+2. [Target](Makefile#78) to check if all `*.sql` files on local project have the correct syntax and format:
 
     ```
     $> make sql-check
