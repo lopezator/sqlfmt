@@ -1,8 +1,31 @@
 # Build and release
 
-Until the path issues are fixed in CockroachDB this manual steps are required in order to make a successful build:
+1. Update `cockroachdb/cockroach-gen` to the latest version:
 
-1. Clone/update: `https://github.com/cockroachdb/cockroach-gen` into `$(GOPATH)/src/github.com/cockroachdb/cockroach-gen`.
-2. Modify the go.mod replace with a local one (without the `-gen` suffix): `github.com/cockroachdb/cockroach => ../../cockroachdb/cockroach`.
-4. Add a new volume so the docker build images are aware of the local repo/replace directive (without `-gen` suffix): `-v $(GOPATH)/src/github.com/cockroachdb/cockroach-gen:/go/src/github.com/cockroachdb/cockroach \`.
-5. `make build`
+```bash
+go get github.com/cockroachdb/cockroach-gen@main
+```
+
+2. Update `cockroachdb/cockroach` to the latest version:
+
+```bash
+go get github.com/cockroachdb/cockroach@master
+```
+
+3. Tidy up the `go.mod` file:
+
+```bash
+go mod tidy
+```
+
+4. Update the version in the `Makefile` accordingly.
+
+5. Generate the binaries:
+
+```bash
+make build
+```
+
+6. Release a new version:
+
+Tag the new version and upload the resulting binaries in the `bin/` folder to github.

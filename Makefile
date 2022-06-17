@@ -2,7 +2,7 @@
 
 SHELL  = /bin/bash
 
-VERSION         = v1.3.0
+VERSION         = v1.4.0
 BUILDER         = docker.elastic.co/beats-dev/golang-crossbuild:1.17.6-$$BUILDER_TAG-debian10
 BUILD_TARGETS   = linux/amd64 windows/amd64 darwin/amd64 darwin/arm64
 
