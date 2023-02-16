@@ -1,6 +1,6 @@
 module github.com/lopezator/sqlfmt
 
-go 1.17
+go 1.19
 
 replace (
 	github.com/abourget/teamcity => github.com/cockroachdb/teamcity v0.0.0-20180905144921-8ca25c33eb11
