@@ -1,31 +1,29 @@
 # Build and release
 
-1. Update `cockroachdb/cockroach-gen` to the latest version:
+1. `go get ...` returns an error because the `go.mod` file has a replace directive. To get around this, edit the `go.mod` file.
 
-```bash
-go get github.com/cockroachdb/cockroach-gen@main
+```go
+github.com/cockroachdb/cockroach => github.com/cockroachdb/cockroach-gen <commitSHA>
+
+github.com/cockroachdb/cockroach <commitSHA>
 ```
 
-2. Update `cockroachdb/cockroach` to the latest version:
+Note: Make sure that the Go version is the same as the one used in cockroachdb and the base docker image to make the build.
 
-```bash
-go get github.com/cockroachdb/cockroach@master
-```
-
-3. Tidy up the `go.mod` file:
+2. Tidy up the `go.mod` file:
 
 ```bash
 go mod tidy
 ```
 
-4. Update the version in the `Makefile` accordingly.
+3. Update the version in the `Makefile` accordingly.
 
-5. Generate the binaries:
+4. Generate the binaries:
 
 ```bash
 make build
 ```
 
-6. Release a new version:
+5. Release a new version:
 
 Tag the new version and upload the resulting binaries in the `bin/` folder to github.
