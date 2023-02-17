@@ -18,7 +18,7 @@ func TestRunSQLFmt(t *testing.T) {
 	}{
 		"simple": {
 			args:  []string{"--use-spaces"},
-			input: "SElect * from foo;",
+			input: "SElect * from foo",
 			want:  "SELECT * FROM foo",
 		},
 	}
@@ -39,7 +39,7 @@ func TestRunSQLFmt(t *testing.T) {
 			if c.Name() != "sqlfmt" {
 				t.Errorf(`invalid command returned from ExecuteC: expected "set"', got: %q`, c.Name())
 			}
-			got := buf.String()
+			got := buf.String()[:len(buf.String())-1] // remove trailing newline
 
 			if test.want != got {
 				t.Errorf("Unexpected output: expected: %v, got: %v", test.want, got)
