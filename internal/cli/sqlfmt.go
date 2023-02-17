@@ -125,7 +125,7 @@ func runSQLFmt(cmd *cobra.Command, args []string) error {
 		if len(sl) > 1 {
 			out = out + ";"
 		}
-		cmd.OutOrStdout().Write([]byte(out))
+		cmd.OutOrStdout().Write([]byte(out + "\n"))
 	}
 	return nil
 }
