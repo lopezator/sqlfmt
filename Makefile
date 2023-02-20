@@ -23,7 +23,7 @@ build:
 			EXT=".exe"; \
 		fi; \
 		docker run -it --rm \
-		-v $(GOPATH)/src/github.com/lopezator/sqlfmt:/go/src/github.com/lopezator/sqlfmt \
+		-v $(shell go env GOPATH)/src/github.com/lopezator/sqlfmt:/go/src/github.com/lopezator/sqlfmt \
 		-w /go/src/github.com/lopezator/sqlfmt \
 		-e CGO_ENABLED=1 \
 		$(BUILDER) \
