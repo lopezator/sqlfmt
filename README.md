@@ -26,6 +26,7 @@ Flags:
       --no-simplify     Don't simplify output.
       --tab-width int   Number of spaces per indentation level. (default 4)
       --use-spaces      Indent with spaces instead of tabs.
+  -v, --version         version for sqlfmt
 ```
 
 ## Examples
