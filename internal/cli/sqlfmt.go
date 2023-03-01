@@ -66,10 +66,11 @@ var sqlfmtCtx struct {
 // NewSqlfmtCmd create and returns the sqlfmt command
 func NewSqlfmtCmd() *cobra.Command {
 	sqlfmtCmd := &cobra.Command{
-		Use:   "sqlfmt",
-		Short: "format SQL statements",
-		Long:  "Formats SQL statements from stdin to line length n.",
-		RunE:  runSQLFmt,
+		Use:     "sqlfmt",
+		Version: "1.5.1",
+		Short:   "format SQL statements",
+		Long:    "Formats SQL statements from stdin to line length n.",
+		RunE:    runSQLFmt,
 	}
 
 	cfg := tree.DefaultPrettyCfg()
